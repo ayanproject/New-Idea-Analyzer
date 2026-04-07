@@ -28,9 +28,15 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_API_URL: ${{ secrets.GEMINI_API_URL }}
 
+      # 🔥 IMPORTANT: Login to Azure
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # 🚀 Deploy
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v2
         with:
           app-name: NewIdeaAnalizer
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: target/*.jar
+          package: target/New-Idea-Analyzer-0.0.1-SNAPSHOT.jar
