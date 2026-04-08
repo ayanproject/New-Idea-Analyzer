@@ -1,3 +1,5 @@
+package Schmooze.Media.New.Idea.Analyzer.service;
+
 import Schmooze.Media.New.Idea.Analyzer.model.IdeaReport;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -14,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Arrays;
+
 @Service
 public class ValidatorService {
 
@@ -34,9 +37,11 @@ public class ValidatorService {
             try {
                 System.out.println("🔁 Attempt: " + attempt);
 
+                // Headers
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
 
+                // Prompt
                 String prompt = "Return ONLY valid JSON. No explanation.\n"
                         + "{\n"
                         + "\"problemSummary\":\"\",\n"
@@ -49,21 +54,24 @@ public class ValidatorService {
                         + "}\n"
                         + "Idea: " + userIdea;
 
-                Map<String, Object> requestBody = Map.of(
-                        "contents", List.of(
-                                Map.of("parts", List.of(
-                                        Map.of("text", prompt)
-                                ))
-                        )
-                );
+                // ✅ SAFE request body (NO Map.of)
+                Map<String, Object> textPart = new HashMap<>();
+                textPart.put("text", prompt);
+
+                Map<String, Object> part = new HashMap<>();
+                part.put("parts", Arrays.asList(textPart));
+
+                Map<String, Object> requestBody = new HashMap<>();
+                requestBody.put("contents", Arrays.asList(part));
 
                 HttpEntity<Map<String, Object>> request =
                         new HttpEntity<>(requestBody, headers);
 
+                // API call
                 String response = restTemplate.postForObject(
                         apiUrl + apiKey, request, String.class);
 
-                // 🔍 Parse Gemini response
+                // Parse response
                 JsonNode root = objectMapper.readTree(response);
 
                 String aiText = root
@@ -73,7 +81,7 @@ public class ValidatorService {
                         .path("text")
                         .asText();
 
-                // 🔥 Clean AI response
+                // Clean response
                 String cleaned = aiText
                         .replace("```json", "")
                         .replace("```", "")
@@ -88,6 +96,7 @@ public class ValidatorService {
 
                 JsonNode aiJson = objectMapper.readTree(cleaned);
 
+                // Map to object
                 IdeaReport report = new IdeaReport();
                 report.setOriginalIdea(userIdea);
                 report.setProblemSummary(aiJson.path("problemSummary").asText());
@@ -98,20 +107,19 @@ public class ValidatorService {
                 report.setRiskLevel(aiJson.path("riskLevel").asText());
                 report.setProfitabilityScore(aiJson.path("profitabilityScore").asInt());
 
-                return report; // ✅ success
+                return report;
 
             } catch (Exception e) {
                 System.out.println("❌ Attempt failed: " + attempt);
                 e.printStackTrace();
 
-                // ⏳ wait before retry
                 try {
-                    Thread.sleep(2000);
+                    Thread.sleep(2000); // wait before retry
                 } catch (InterruptedException ignored) {}
             }
         }
 
-        // 🚨 FINAL FALLBACK
+        // FINAL FALLBACK
         IdeaReport fallback = new IdeaReport();
         fallback.setOriginalIdea(userIdea);
         fallback.setProblemSummary("AI service busy, please try again");
