@@ -10,7 +10,9 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "*") // Allow frontend to access
+@CrossOrigin(origins = {
+    "https://effulgent-mochi-...netlify.app"
+}) // Allow frontend to access
 public class ValidatorController {
 
     @Autowired
